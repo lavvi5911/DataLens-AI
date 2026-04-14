@@ -32,8 +32,25 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
     font-family: 'DM Sans', sans-serif !important;
 }
 
-/* Hide Streamlit chrome */
-#MainMenu, footer, header { visibility: hidden !important; }
+/* Hide Streamlit chrome — target specific children, NOT the header element itself.
+   header { visibility: hidden } cascades to the sidebar toggle button (its child)
+   which is why the toggle disappears after closing the sidebar in Streamlit 1.56. */
+#MainMenu  { display: none !important; }
+footer     { display: none !important; }
+
+/* Hide everything INSIDE header except the sidebar toggle */
+header > *:not([data-testid="stSidebarToggle"]) { visibility: hidden !important; }
+
+/* Guarantee the sidebar toggle button is always visible */
+[data-testid="stSidebarToggle"],
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapseButton"] {
+    display:    flex       !important;
+    visibility: visible    !important;
+    opacity:    1          !important;
+    pointer-events: auto   !important;
+}
+
 [data-testid="stDecoration"] { display: none !important; }
 [data-testid="stToolbar"]    { display: none !important; }
 
@@ -520,34 +537,4 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
     font-size: 0.88rem;
     margin: 0.5rem 0;
     line-height: 1.55;
-}
-
-/* ── Sidebar collapse/expand toggle button ──────────────────────────────── */
-/* Streamlit 1.56+ renders the toggle as [data-testid="collapsedControl"]   */
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-bright) !important;
-    border-radius: 0 var(--radius-sm) var(--radius-sm) 0 !important;
-    color: var(--text-primary) !important;
-    z-index: 999 !important;
-}
-[data-testid="collapsedControl"]:hover {
-    background: rgba(99,102,241,0.2) !important;
-    border-color: var(--indigo) !important;
-}
-[data-testid="collapsedControl"] svg {
-    fill: var(--text-primary) !important;
-}
-
-/* Also ensure the sidebar chevron inside the sidebar is visible */
-[data-testid="stSidebarCollapseButton"] {
-    display: flex !important;
-    visibility: visible !important;
-    color: var(--text-secondary) !important;
-}
-[data-testid="stSidebarCollapseButton"]:hover {
-    color: var(--text-primary) !important;
 }
