@@ -145,8 +145,9 @@ if nav == "📤 Upload Dataset":
         uploaded = st.file_uploader("", type=["csv"], label_visibility="collapsed")
 
         if uploaded:
-            with st.spinner("Analyzing your dataset…"):
-                df, error = load_dataset(uploaded)
+            file_mb = round(uploaded.size / 1e6, 1)
+            with st.spinner(f"Loading {file_mb} MB dataset — please wait…"):
+                df, error, sample_info = load_dataset(uploaded)
                 if error:
                     st.markdown(f'<div class="error-box">⚠️ {error}</div>', unsafe_allow_html=True)
                 else:
@@ -166,14 +167,20 @@ if nav == "📤 Upload Dataset":
                         st.session_state.insights        = explainer.generate()
                         st.session_state.health_score    = detector.health_score()
 
+                        mem_mb = round(df.memory_usage(deep=True).sum() / 1e6, 1)
                         st.markdown(f"""
                         <div class="success-box">
                             ✅ Dataset loaded —
                             <strong>{df.shape[0]:,}</strong> rows ×
-                            <strong>{df.shape[1]}</strong> columns.
+                            <strong>{df.shape[1]}</strong> columns ·
+                            <strong>{mem_mb} MB</strong> in memory.
                             Navigate using the sidebar.
                         </div>
                         """, unsafe_allow_html=True)
+
+                        if sample_info:
+                            st.markdown(f'<div class="sample-info-box">🔀 {sample_info}</div>',
+                                        unsafe_allow_html=True)
 
     with col2:
         st.markdown("""
