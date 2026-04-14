@@ -509,3 +509,15 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(99,102,241,0.55); }
+
+/* ── Sample info banner ─────────────────────────────────────────────────── */
+.sample-info-box {
+    background: rgba(99,102,241,0.10);
+    border: 1px solid rgba(99,102,241,0.35);
+    border-radius: var(--radius-sm);
+    padding: 0.85rem 1.25rem;
+    color: #c7d2fe;
+    font-size: 0.88rem;
+    margin: 0.5rem 0;
+    line-height: 1.55;
+}
