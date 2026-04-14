@@ -13,7 +13,7 @@ from utils.detector import IssueDetector
 from utils.recommender import RecommendationEngine
 from utils.explainer import InsightExplainer
 
-# ── Page config ──────────────────────────────────────────────────────────────
+# ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="DataLens AI · Dataset Debugger",
     page_icon="🔬",
@@ -21,12 +21,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Inject CSS ────────────────────────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 with open("assets/styles.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _plotly_layout():
     return dict(
@@ -34,36 +34,29 @@ def _plotly_layout():
         paper_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#e2e8f0", family="DM Sans, sans-serif"),
         margin=dict(l=20, r=20, t=50, b=20),
-        xaxis=dict(
-            gridcolor="rgba(255,255,255,0.05)",
-            zerolinecolor="rgba(255,255,255,0.1)",
-        ),
-        yaxis=dict(
-            gridcolor="rgba(255,255,255,0.05)",
-            zerolinecolor="rgba(255,255,255,0.1)",
-        ),
+        xaxis=dict(gridcolor="rgba(255,255,255,0.05)", zerolinecolor="rgba(255,255,255,0.1)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.05)", zerolinecolor="rgba(255,255,255,0.1)"),
     )
 
 
-def _build_report(df, issues, recs, health_score):
+def _build_report(df, issues, recs, score):
     lines = [
         "=" * 60,
         "  DataLens AI — Dataset Diagnostic Report",
         f"  Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         "=" * 60,
         "",
-        f"DATASET HEALTH SCORE: {health_score}/100",
+        f"DATASET HEALTH SCORE: {score}/100",
         f"Shape: {df.shape[0]:,} rows x {df.shape[1]} columns",
-        f"Memory usage: {df.memory_usage(deep=True).sum() / 1e6:.2f} MB",
+        f"Memory: {df.memory_usage(deep=True).sum() / 1e6:.2f} MB",
         "",
-        "── ISSUES DETECTED ──────────────────────────────────────",
+        "── ISSUES ───────────────────────────────────────────────",
     ]
+    sorder = {"critical": 0, "high": 1, "medium": 2, "low": 3}
     if issues:
-        sorder = {"critical": 0, "high": 1, "medium": 2, "low": 3}
         for iss in sorted(issues, key=lambda x: sorder.get(x["severity"], 9)):
-            lines.append(f"\n[{iss['severity'].upper()}] {iss['title']}")
-            lines.append(f"  {iss['description']}")
-            lines.append(f"  Fix: {iss['fix']}")
+            lines += [f"\n[{iss['severity'].upper()}] {iss['title']}",
+                      f"  {iss['description']}", f"  Fix: {iss['fix']}"]
     else:
         lines.append("No significant issues detected.")
     lines += ["", "── RECOMMENDATIONS ──────────────────────────────────────"]
@@ -71,8 +64,7 @@ def _build_report(df, issues, recs, health_score):
         if items:
             lines.append(f"\n{section.replace('_', ' ').upper()}")
             for item in items:
-                lines.append(f"  * {item['title']}")
-                lines.append(f"    {item['detail']}")
+                lines += [f"  * {item['title']}", f"    {item['detail']}"]
     lines += ["", "=" * 60, "End of Report", "=" * 60]
     return "\n".join(lines)
 
@@ -93,11 +85,12 @@ with st.sidebar:
     """, unsafe_allow_html=True)
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
+    # FIX 1 — non-empty label, hidden via label_visibility to satisfy Streamlit 1.56+
     nav = st.radio(
-        "",
+        "Navigation",
         ["📤 Upload Dataset", "📊 Data Overview", "🚨 Issues Detected",
          "🧠 AI Insights", "💡 Recommendations"],
-        label_visibility="collapsed",
+        label_visibility="hidden",
     )
 
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
@@ -105,6 +98,7 @@ with st.sidebar:
     if st.session_state.health_score is not None:
         score = st.session_state.health_score
         color = "#22c55e" if score >= 75 else "#f59e0b" if score >= 50 else "#ef4444"
+        label = "Excellent" if score >= 75 else "Needs Work" if score >= 50 else "Critical Issues"
         st.markdown(f"""
         <div class="health-widget">
             <div class="health-label">Dataset Health Score</div>
@@ -112,7 +106,7 @@ with st.sidebar:
             <div class="health-bar-bg">
                 <div class="health-bar-fill" style="width:{score}%;background:{color}"></div>
             </div>
-            <div class="health-note">{"Excellent" if score >= 75 else "Needs Work" if score >= 50 else "Critical Issues"}</div>
+            <div class="health-note">{label}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -120,7 +114,7 @@ with st.sidebar:
     st.markdown('<p class="sidebar-footer">v1.0 · Built with ❤️</p>', unsafe_allow_html=True)
 
 
-# ── Hero header ───────────────────────────────────────────────────────────────
+# ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero-header">
     <div class="hero-bg"></div>
@@ -142,11 +136,16 @@ if nav == "📤 Upload Dataset":
             '<div class="upload-zone-label">Drop a CSV file to begin deep analysis</div>',
             unsafe_allow_html=True,
         )
-        uploaded = st.file_uploader("", type=["csv"], label_visibility="collapsed")
+        # FIX 2 — non-empty label, hidden via label_visibility
+        uploaded = st.file_uploader(
+            "Upload CSV",
+            type=["csv"],
+            label_visibility="hidden",
+        )
 
         if uploaded:
             file_mb = round(uploaded.size / 1e6, 1)
-            with st.spinner(f"Loading {file_mb} MB dataset — please wait…"):
+            with st.spinner(f"Loading {file_mb} MB — please wait…"):
                 df, error, sample_info = load_dataset(uploaded)
                 if error:
                     st.markdown(f'<div class="error-box">⚠️ {error}</div>', unsafe_allow_html=True)
@@ -156,16 +155,25 @@ if nav == "📤 Upload Dataset":
                         st.markdown(f'<div class="error-box">⚠️ {msg}</div>', unsafe_allow_html=True)
                     else:
                         st.session_state.df = df
-                        analyzer    = DataAnalyzer(df)
-                        detector    = IssueDetector(df)
+
+                        analyzer = DataAnalyzer(df)
+                        detector = IssueDetector(df)
+
+                        # FIX 3 — detect_all() and health_score() called ONCE here,
+                        # BEFORE RecommendationEngine / InsightExplainer are constructed,
+                        # so their internal calls see _detected=True and skip re-running,
+                        # preventing _health_deductions from being reset to 0.
+                        issues_list = detector.detect_all()
+                        health      = detector.health_score()
+
                         recommender = RecommendationEngine(df, detector)
                         explainer   = InsightExplainer(df, detector, analyzer)
 
                         st.session_state.analysis        = analyzer.run()
-                        st.session_state.issues          = detector.detect_all()
+                        st.session_state.issues          = issues_list
+                        st.session_state.health_score    = health
                         st.session_state.recommendations = recommender.generate()
                         st.session_state.insights        = explainer.generate()
-                        st.session_state.health_score    = detector.health_score()
 
                         mem_mb = round(df.memory_usage(deep=True).sum() / 1e6, 1)
                         st.markdown(f"""
@@ -179,8 +187,10 @@ if nav == "📤 Upload Dataset":
                         """, unsafe_allow_html=True)
 
                         if sample_info:
-                            st.markdown(f'<div class="sample-info-box">🔀 {sample_info}</div>',
-                                        unsafe_allow_html=True)
+                            st.markdown(
+                                f'<div class="sample-info-box">🔀 {sample_info}</div>',
+                                unsafe_allow_html=True,
+                            )
 
     with col2:
         st.markdown("""
@@ -222,15 +232,15 @@ elif nav == "📊 Data Overview":
         st.markdown('<div class="section-title">Data Overview</div>', unsafe_allow_html=True)
 
         n_rows, n_cols = df.shape
-        n_numeric  = df.select_dtypes(include=np.number).shape[1]
-        n_missing  = int(df.isnull().sum().sum())
-        miss_pct   = round(n_missing / (n_rows * n_cols) * 100, 1)
+        n_numeric = df.select_dtypes(include=np.number).shape[1]
+        n_missing = int(df.isnull().sum().sum())
+        miss_pct  = round(n_missing / (n_rows * n_cols) * 100, 1)
 
         c1, c2, c3, c4 = st.columns(4)
         for col_ui, label, value, icon in [
-            (c1, "Rows",             f"{n_rows:,}",                 "📋"),
-            (c2, "Columns",          str(n_cols),                   "🗂️"),
-            (c3, "Numeric Features", str(n_numeric),                "🔢"),
+            (c1, "Rows",             f"{n_rows:,}",                  "📋"),
+            (c2, "Columns",          str(n_cols),                    "🗂️"),
+            (c3, "Numeric Features", str(n_numeric),                 "🔢"),
             (c4, "Missing Cells",    f"{n_missing:,} ({miss_pct}%)", "🕳️"),
         ]:
             with col_ui:
@@ -243,15 +253,14 @@ elif nav == "📊 Data Overview":
                 """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
-
         t1, t2, t3, t4 = st.tabs(["📋 Sample Data", "📈 Statistics", "🌡️ Correlation", "📊 Distributions"])
 
         with t1:
-            st.markdown('<div class="tab-subtitle">First 50 rows of your dataset</div>', unsafe_allow_html=True)
+            st.markdown('<div class="tab-subtitle">First 50 rows</div>', unsafe_allow_html=True)
             st.dataframe(df.head(50), use_container_width=True)
 
         with t2:
-            st.markdown('<div class="tab-subtitle">Descriptive statistics for all features</div>', unsafe_allow_html=True)
+            st.markdown('<div class="tab-subtitle">Descriptive statistics</div>', unsafe_allow_html=True)
             desc = df.describe(include="all").T.reset_index().rename(columns={"index": "Feature"})
             st.dataframe(desc, use_container_width=True)
 
@@ -261,11 +270,9 @@ elif nav == "📊 Data Overview":
                 st.info("Need at least 2 numeric columns for a correlation matrix.")
             else:
                 corr = num_df.corr()
-                fig  = px.imshow(
-                    corr, text_auto=".2f",
-                    color_continuous_scale="RdBu_r", zmin=-1, zmax=1,
-                    title="Feature Correlation Matrix",
-                )
+                fig  = px.imshow(corr, text_auto=".2f",
+                                 color_continuous_scale="RdBu_r", zmin=-1, zmax=1,
+                                 title="Feature Correlation Matrix")
                 fig.update_layout(**_plotly_layout())
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -274,7 +281,7 @@ elif nav == "📊 Data Overview":
             if not num_cols:
                 st.info("No numeric columns available.")
             else:
-                chosen   = st.selectbox("Select feature", num_cols)
+                chosen   = st.selectbox("Select feature", num_cols, key="dist_sel")
                 col_data = df[chosen].dropna()
                 fig = make_subplots(rows=1, cols=2, subplot_titles=["Histogram", "Box Plot"])
                 fig.add_trace(go.Histogram(x=col_data, name="Histogram",
@@ -294,7 +301,6 @@ elif nav == "🚨 Issues Detected":
     else:
         issues = st.session_state.issues
         df     = st.session_state.df
-
         st.markdown('<div class="section-title">Issues Detected</div>', unsafe_allow_html=True)
 
         sorder  = {"critical": 0, "high": 1, "medium": 2, "low": 3}
@@ -304,8 +310,7 @@ elif nav == "🚨 Issues Detected":
         if not issues:
             st.markdown(
                 '<div class="success-box">🎉 No significant issues detected! Your dataset looks clean.</div>',
-                unsafe_allow_html=True,
-            )
+                unsafe_allow_html=True)
         else:
             counts = {s: sum(1 for i in issues if i["severity"] == s)
                       for s in ["critical", "high", "medium", "low"]}
@@ -333,7 +338,6 @@ elif nav == "🚨 Issues Detected":
                 </div>
                 """, unsafe_allow_html=True)
 
-            # Missing values chart
             missing = df.isnull().sum()
             missing = missing[missing > 0].sort_values(ascending=True)
             if len(missing):
@@ -349,18 +353,16 @@ elif nav == "🚨 Issues Detected":
                     textposition="outside",
                 ))
                 fig.update_layout(title="Missing Values per Column",
-                                  xaxis_title="Missing Count", yaxis_title="",
+                                  xaxis_title="Count", yaxis_title="",
                                   **_plotly_layout())
                 st.plotly_chart(fig, use_container_width=True)
 
-            # Outlier boxplots
             num_cols = df.select_dtypes(include=np.number).columns.tolist()
             if num_cols:
                 st.markdown('<div class="chart-title">Outlier Analysis</div>', unsafe_allow_html=True)
                 fig = go.Figure()
                 for c in num_cols[:8]:
-                    fig.add_trace(go.Box(y=df[c].dropna(), name=c,
-                                         boxpoints="outliers",
+                    fig.add_trace(go.Box(y=df[c].dropna(), name=c, boxpoints="outliers",
                                          marker_color="#8b5cf6", line_color="#a78bfa"))
                 fig.update_layout(title="Boxplots — Outlier Detection", **_plotly_layout())
                 st.plotly_chart(fig, use_container_width=True)
@@ -375,7 +377,6 @@ elif nav == "🧠 AI Insights":
     else:
         insights = st.session_state.insights
         df       = st.session_state.df
-
         st.markdown('<div class="section-title">AI Insights</div>', unsafe_allow_html=True)
         st.markdown(
             "<div class=\"section-sub\">Plain-English explanations of what's happening in your data</div>",
@@ -398,11 +399,13 @@ elif nav == "🧠 AI Insights":
             </div>
             """, unsafe_allow_html=True)
 
-        cat_cols = df.select_dtypes(include="object").columns.tolist()
+        # Categorical chart — handle category dtype too
+        cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
         if cat_cols:
-            st.markdown('<div class="chart-title">Categorical Feature Distribution</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">Categorical Feature Distribution</div>',
+                        unsafe_allow_html=True)
             chosen_cat = st.selectbox("Select column", cat_cols, key="cat_sel")
-            vc = df[chosen_cat].value_counts().head(20)
+            vc = df[chosen_cat].astype(str).value_counts().head(20)
             fig = px.bar(x=vc.index, y=vc.values,
                          labels={"x": chosen_cat, "y": "Count"},
                          color=vc.values.tolist(),
@@ -423,11 +426,11 @@ elif nav == "🧠 AI Insights":
                 text=[f"{v:.2f}" for v in skew.values],
                 textposition="outside",
             ))
-            for thresh, color, label in [(1, "#f59e0b", "Moderate"), (2, "#ef4444", "Severe")]:
+            for thresh, color, lbl in [(1, "#f59e0b", "Moderate"), (2, "#ef4444", "Severe")]:
                 fig.add_hline(y=thresh,  line_dash="dot", line_color=color,
-                              annotation_text=f"{label} (+)")
+                              annotation_text=f"{lbl} (+)")
                 fig.add_hline(y=-thresh, line_dash="dot", line_color=color,
-                              annotation_text=f"{label} (-)")
+                              annotation_text=f"{lbl} (-)")
             fig.update_layout(title="Feature Skewness",
                               xaxis_title="Feature", yaxis_title="Skewness",
                               **_plotly_layout())
@@ -443,8 +446,8 @@ elif nav == "💡 Recommendations":
     else:
         recs = st.session_state.recommendations
         df   = st.session_state.df
-
-        st.markdown('<div class="section-title">Recommendations & Next Steps</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Recommendations &amp; Next Steps</div>',
+                    unsafe_allow_html=True)
 
         report_txt = _build_report(df, st.session_state.issues, recs, st.session_state.health_score)
         b64 = base64.b64encode(report_txt.encode()).decode()
@@ -457,18 +460,20 @@ elif nav == "💡 Recommendations":
 
         pcols = ["#6366f1", "#6366f1", "#8b5cf6", "#8b5cf6", "#a78bfa", "#a78bfa"]
         for section_key, section_title, icon in [
-            ("preprocessing",       "Preprocessing Steps",     "🧹"),
-            ("feature_engineering", "Feature Engineering",     "⚙️"),
-            ("encoding",            "Encoding Recommendations","🔤"),
-            ("modeling",            "Model Suggestions",       "🤖"),
+            ("preprocessing",       "Preprocessing Steps",      "🧹"),
+            ("feature_engineering", "Feature Engineering",      "⚙️"),
+            ("encoding",            "Encoding Recommendations", "🔤"),
+            ("modeling",            "Model Suggestions",        "🤖"),
         ]:
             items = recs.get(section_key, [])
             if not items:
                 continue
-            st.markdown(f'<div class="rec-section-title">{icon} {section_title}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="rec-section-title">{icon} {section_title}</div>',
+                        unsafe_allow_html=True)
             for idx, item in enumerate(items, 1):
-                pc = pcols[min(idx - 1, len(pcols) - 1)]
-                code_html = f'<code class="rec-code">{item["code"]}</code>' if item.get("code") else ""
+                pc        = pcols[min(idx - 1, len(pcols) - 1)]
+                code_html = (f'<code class="rec-code">{item["code"]}</code>'
+                             if item.get("code") else "")
                 st.markdown(f"""
                 <div class="rec-card">
                     <div class="rec-num" style="background:{pc}">{idx}</div>
