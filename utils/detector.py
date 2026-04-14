@@ -26,6 +26,7 @@ class IssueDetector:
         self.cat_df = df.select_dtypes(include="object")
         self._issues: List[Dict[str, Any]] = []
         self._health_deductions: float = 0.0
+        self._detected: bool = False
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -41,10 +42,11 @@ class IssueDetector:
         self._check_class_imbalance()
         self._check_data_leakage()
         self._check_high_cardinality()
+        self._detected = True
         return self._issues
 
     def health_score(self) -> int:
-        if not self._issues:
+        if not self._detected:
             self.detect_all()
         score = max(0, min(100, 100 - int(self._health_deductions)))
         return score
