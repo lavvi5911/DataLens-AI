@@ -257,12 +257,12 @@ elif nav == "📊 Data Overview":
 
         with t1:
             st.markdown('<div class="tab-subtitle">First 50 rows</div>', unsafe_allow_html=True)
-            st.dataframe(df.head(50), use_container_width=True)
+            st.dataframe(df.head(50), width='stretch')
 
         with t2:
             st.markdown('<div class="tab-subtitle">Descriptive statistics</div>', unsafe_allow_html=True)
             desc = df.describe(include="all").T.reset_index().rename(columns={"index": "Feature"})
-            st.dataframe(desc, use_container_width=True)
+            st.dataframe(desc, width='stretch')
 
         with t3:
             num_df = df.select_dtypes(include=np.number)
@@ -274,7 +274,7 @@ elif nav == "📊 Data Overview":
                                  color_continuous_scale="RdBu_r", zmin=-1, zmax=1,
                                  title="Feature Correlation Matrix")
                 fig.update_layout(**_plotly_layout())
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
         with t4:
             num_cols = df.select_dtypes(include=np.number).columns.tolist()
@@ -289,7 +289,7 @@ elif nav == "📊 Data Overview":
                 fig.add_trace(go.Box(y=col_data, name="Boxplot",
                                      marker_color="#8b5cf6", line_color="#a78bfa"), row=1, col=2)
                 fig.update_layout(title=f"Distribution of {chosen}", **_plotly_layout())
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -355,7 +355,7 @@ elif nav == "🚨 Issues Detected":
                 fig.update_layout(title="Missing Values per Column",
                                   xaxis_title="Count", yaxis_title="",
                                   **_plotly_layout())
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
             num_cols = df.select_dtypes(include=np.number).columns.tolist()
             if num_cols:
@@ -365,7 +365,7 @@ elif nav == "🚨 Issues Detected":
                     fig.add_trace(go.Box(y=df[c].dropna(), name=c, boxpoints="outliers",
                                          marker_color="#8b5cf6", line_color="#a78bfa"))
                 fig.update_layout(title="Boxplots — Outlier Detection", **_plotly_layout())
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -411,7 +411,7 @@ elif nav == "🧠 AI Insights":
                          color=vc.values.tolist(),
                          color_continuous_scale="Purpor")
             fig.update_layout(title=f"Value Counts: {chosen_cat}", **_plotly_layout())
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         num_df = df.select_dtypes(include=np.number)
         if not num_df.empty:
@@ -434,7 +434,7 @@ elif nav == "🧠 AI Insights":
             fig.update_layout(title="Feature Skewness",
                               xaxis_title="Feature", yaxis_title="Skewness",
                               **_plotly_layout())
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
