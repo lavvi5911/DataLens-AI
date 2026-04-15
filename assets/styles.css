@@ -32,27 +32,14 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stApp"] {
     font-family: 'DM Sans', sans-serif !important;
 }
 
-/* Hide Streamlit chrome — target specific children, NOT the header element itself.
-   header { visibility: hidden } cascades to the sidebar toggle button (its child)
-   which is why the toggle disappears after closing the sidebar in Streamlit 1.56. */
-#MainMenu  { display: none !important; }
-footer     { display: none !important; }
-
-/* Hide everything INSIDE header except the sidebar toggle */
-header > *:not([data-testid="stSidebarToggle"]) { visibility: hidden !important; }
-
-/* Guarantee the sidebar toggle button is always visible */
-[data-testid="stSidebarToggle"],
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"] {
-    display:    flex       !important;
-    visibility: visible    !important;
-    opacity:    1          !important;
-    pointer-events: auto   !important;
-}
-
+/* Hide Streamlit chrome cleanly — use display:none, NOT visibility:hidden.
+   visibility:hidden cascades to children and hides the sidebar toggle button. */
+#MainMenu                { display: none !important; }
+footer                   { display: none !important; }
+header                   { display: none !important; }
 [data-testid="stDecoration"] { display: none !important; }
 [data-testid="stToolbar"]    { display: none !important; }
+/* The sidebar toggle is handled by our custom JS floating button (see app.py) */
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
