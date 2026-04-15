@@ -25,6 +25,92 @@ st.set_page_config(
 with open("assets/styles.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
+# ── Sidebar toggle fix (JS) ───────────────────────────────────────────────────
+# Streamlit 1.56 renders the sidebar toggle inside <header> which our CSS hides.
+# We inject a persistent floating button that always works regardless of DOM changes.
+st.markdown("""
+<script>
+(function() {
+    function injectToggle() {
+        // Don't inject twice
+        if (document.getElementById('dl-sidebar-btn')) return;
+
+        var btn = document.createElement('button');
+        btn.id = 'dl-sidebar-btn';
+        btn.innerHTML = '&#9776;';
+        btn.title = 'Toggle sidebar';
+        btn.style.cssText = [
+            'position:fixed',
+            'top:12px',
+            'left:12px',
+            'z-index:99999',
+            'width:38px',
+            'height:38px',
+            'border-radius:8px',
+            'border:1px solid rgba(99,102,241,0.5)',
+            'background:#141724',
+            'color:#f1f5f9',
+            'font-size:18px',
+            'cursor:pointer',
+            'display:flex',
+            'align-items:center',
+            'justify-content:center',
+            'box-shadow:0 2px 12px rgba(0,0,0,0.4)',
+            'transition:all 0.2s ease',
+            'line-height:1',
+        ].join(';');
+
+        btn.addEventListener('mouseenter', function() {
+            btn.style.background = 'rgba(99,102,241,0.25)';
+            btn.style.borderColor = '#6366f1';
+        });
+        btn.addEventListener('mouseleave', function() {
+            btn.style.background = '#141724';
+            btn.style.borderColor = 'rgba(99,102,241,0.5)';
+        });
+
+        btn.addEventListener('click', function() {
+            // Try every known Streamlit sidebar toggle selector across versions
+            var selectors = [
+                '[data-testid="collapsedControl"]',
+                '[data-testid="stSidebarToggle"]',
+                '[data-testid="stSidebarCollapseButton"]',
+                'button[kind="header"]',
+                'section[data-testid="stSidebar"] ~ div button',
+            ];
+            var clicked = false;
+            for (var i = 0; i < selectors.length; i++) {
+                var el = window.parent.document.querySelector(selectors[i]);
+                if (!el) el = document.querySelector(selectors[i]);
+                if (el) { el.click(); clicked = true; break; }
+            }
+            // Fallback: find any button near the sidebar
+            if (!clicked) {
+                var buttons = window.parent.document.querySelectorAll('button');
+                for (var j = 0; j < buttons.length; j++) {
+                    var rect = buttons[j].getBoundingClientRect();
+                    if (rect.left < 60 && rect.top < 80) {
+                        buttons[j].click(); break;
+                    }
+                }
+            }
+        });
+
+        document.body.appendChild(btn);
+    }
+
+    // Run immediately and after DOM settles
+    injectToggle();
+    setTimeout(injectToggle, 500);
+    setTimeout(injectToggle, 1500);
+
+    // Re-run on any Streamlit re-render
+    var observer = new MutationObserver(function() { injectToggle(); });
+    observer.observe(document.body, { childList: true, subtree: false });
+})();
+</script>
+""", unsafe_allow_html=True)
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
